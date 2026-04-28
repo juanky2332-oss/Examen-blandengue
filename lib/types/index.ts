@@ -161,22 +161,39 @@ export interface SpeakingAnswers {
   part4: Record<number, 'recorded' | 'skipped' | null>
 }
 
-// ─── RESULTS / WEBHOOK PAYLOAD ───────────────────────────────────────────────
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+
+export interface WrongAnswer {
+  questionId: number
+  question: string
+  yourAnswer: string
+  correctAnswer: string
+  explanation?: string
+}
+
+export interface ExamResult {
+  module: ExamModule
+  timestamp: string
+  score: number
+  level: string
+  overallFeedback: string
+  strengths: string[]
+  improvements: string[]
+  partScores?: Record<string, number>
+  detailedFeedback?: Record<string, string>
+  examinerTip?: string
+  wrongAnswers?: WrongAnswer[]
+  correctCount?: number
+  totalCount?: number
+}
+
+// ─── WEBHOOK PAYLOAD ─────────────────────────────────────────────────────────
 
 export interface ExamSubmission {
   examId: string
   module: ExamModule
   candidateName: string
   submittedAt: string
-  timeTaken: number // seconds
+  timeTaken: number
   answers: CoreAnswers | ReadingAnswers | ListeningAnswers | WritingAnswers | SpeakingAnswers
-}
-
-export interface AIEvaluationResult {
-  score: number
-  level: string
-  feedback: string
-  strengths: string[]
-  areasForImprovement: string[]
-  detailedFeedback: Record<string, string>
 }
