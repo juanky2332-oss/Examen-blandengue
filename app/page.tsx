@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { studyPlan } from '@/lib/mock-data/study-plan'
+import ProgressTracker from '@/components/ui/ProgressTracker'
 import {
   BookOpen, Headphones, PenLine, Mic, Brain, Clock, ChevronRight,
   GraduationCap, Flame, ArrowRight, Target, Star, CheckCircle,
@@ -190,6 +191,9 @@ export default function Dashboard() {
                 Read full strategy →
               </Link>
             </div>
+
+            {/* Progress tracker */}
+            <ProgressTracker />
 
             {/* Format reminder */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">

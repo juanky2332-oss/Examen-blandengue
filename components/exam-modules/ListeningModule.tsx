@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import ExamHeader from '@/components/ui/ExamHeader'
 import { listeningParts } from '@/lib/mock-data/listening-questions'
 import type { ListeningAnswers, ExamResult } from '@/lib/types'
-import { Play, Pause, Volume2, CheckCircle, Send, RotateCcw } from 'lucide-react'
+import { Play, Pause, Volume2, CheckCircle, Send, RotateCcw, FileText, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
 
 const LISTENING_SECONDS = 40 * 60
 const PART_KEYS = ['part1', 'part2', 'part3', 'part4'] as const
@@ -15,10 +15,11 @@ export default function ListeningModule() {
   const [currentPart, setCurrentPart] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [audioProgress, setAudioProgress] = useState(0)
-  const [submitted, setSubmitted] = useState(false)
+  const [phase, setPhase] = useState<'exam' | 'transcripts'>('exam')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [answers, setAnswers] = useState<ListeningAnswers>({ part1: {}, part2: {}, part3: {}, part4: {} })
+  const [result, setResult] = useState<ExamResult | null>(null)
 
   const partKey = PART_KEYS[currentPart]
 
@@ -83,7 +84,7 @@ export default function ListeningModule() {
       return part.questions.filter(q => answers[pk][q.id] === q.correctIndex).length
     })
 
-    const result: ExamResult = {
+    const computed: ExamResult = {
       module: 'listening',
       timestamp: new Date().toISOString(),
       score,
@@ -92,35 +93,29 @@ export default function ListeningModule() {
       strengths: [
         partCorrects[0] >= 4 ? 'Strong comprehension of short, fast exchanges' : null,
         partCorrects[2] >= 3 ? 'Good ability to follow extended monologues (interviews)' : null,
-        partCorrects[3] >= 3 ? 'Solid understanding of documentary-style content' : null,
+        partCorrects[3] >= 3 ? 'Solid understanding of documentary-style academic content' : null,
         correct >= 12 ? 'Above-average overall listening comprehension' : null,
       ].filter(Boolean) as string[],
       improvements: [
-        partCorrects[0] < 4 ? 'Short exchanges: focus on getting the gist quickly — you only hear each once' : null,
+        partCorrects[0] < 4 ? 'Short exchanges: focus on getting the gist quickly — you only hear each once in the real exam' : null,
         partCorrects[1] < 3 ? 'Information matching: take notes while listening; answers are often paraphrased' : null,
-        partCorrects[2] < 3 ? 'Extended monologue: practise listening to interviews on BBC World Service or podcasts' : null,
-        partCorrects[3] < 3 ? 'Documentary: listen to documentaries and academic talks to build vocabulary' : null,
+        partCorrects[2] < 3 ? 'Extended monologue: practise listening to interviews on BBC World Service or TED Talks' : null,
+        partCorrects[3] < 3 ? 'Documentary: listen to documentaries and academic talks to build topic vocabulary' : null,
       ].filter(Boolean) as string[],
       wrongAnswers,
       correctCount: correct,
       totalCount: total,
-      examinerTip: 'In the real Aptis, audio plays once only. Practise listening without rewinding — it builds active listening skills critical for B2.',
+      examinerTip: 'In the real Aptis exam, audio plays once only. Practise listening without rewinding — it builds the active listening skills critical for B2.',
     }
 
-    localStorage.setItem('aptis_result_listening', JSON.stringify(result))
-    setSubmitted(true)
-    setTimeout(() => router.push('/results?module=listening'), 400)
-  }, [answers, router])
+    localStorage.setItem('aptis_result_listening', JSON.stringify(computed))
+    setResult(computed)
+    setPhase('transcripts')
+  }, [answers])
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
-          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-          <p className="font-semibold text-gray-800">Scored! Redirecting...</p>
-        </div>
-      </div>
-    )
+  // Transcript review phase
+  if (phase === 'transcripts' && result) {
+    return <TranscriptReview result={result} onContinue={() => router.push('/results?module=listening')} />
   }
 
   const part = listeningParts[currentPart]
@@ -153,7 +148,6 @@ export default function ListeningModule() {
           })}
         </div>
 
-        {/* Instruction */}
         <div className="bg-blue-700 rounded-xl p-4 text-white mb-5">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Part {part.partNumber}</span>
@@ -174,7 +168,7 @@ export default function ListeningModule() {
               {playing ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
             </button>
             <div className="flex-1">
-              <div className="w-full bg-gray-700 rounded-full h-2 cursor-pointer">
+              <div className="w-full bg-gray-700 rounded-full h-2">
                 <div className="bg-blue-400 h-2 rounded-full transition-all duration-150" style={{ width: `${audioProgress}%` }} />
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -188,14 +182,19 @@ export default function ListeningModule() {
             <Volume2 className="w-4 h-4 text-gray-500 shrink-0" />
           </div>
           {audioProgress === 0 && (
-            <p className="text-xs text-amber-400 mt-3">▶ Press play to simulate the audio. Answer the questions below after listening.</p>
+            <p className="text-xs text-amber-400 mt-3">▶ Press play to simulate the audio. Read the questions below first, then listen.</p>
+          )}
+          {audioProgress > 0 && audioProgress < 100 && (
+            <p className="text-xs text-blue-300 mt-3">🎧 Listening... Answer the questions below as you listen.</p>
           )}
           {audioProgress === 100 && (
             <p className="text-xs text-green-400 mt-3">✓ Audio finished. Answer all questions before moving to the next part.</p>
           )}
+          <p className="text-xs text-gray-500 mt-2 italic">
+            In the real exam: audio plays once only. Practise without rewinding.
+          </p>
         </div>
 
-        {/* Questions */}
         <div className="space-y-4">
           {part.questions.map((q, qi) => (
             <div key={q.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
@@ -217,7 +216,6 @@ export default function ListeningModule() {
           ))}
         </div>
 
-        {/* Navigation */}
         <div className="flex justify-between mt-8">
           <button onClick={() => { setCurrentPart(p => Math.max(0, p - 1)); resetAudio() }}
             disabled={currentPart === 0}
@@ -232,10 +230,87 @@ export default function ListeningModule() {
           ) : (
             <button onClick={handleSubmit}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow">
-              <Send className="w-4 h-4" /> Submit & See Results
+              <Send className="w-4 h-4" /> Submit & Review Transcripts
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Transcript Review Screen ─────────────────────────────────────────────────
+
+function TranscriptReview({ result, onContinue }: { result: ExamResult; onContinue: () => void }) {
+  const [openPart, setOpenPart] = useState<number | null>(0)
+  const scoreColor = result.score >= 70 ? 'text-green-700 bg-green-100' : result.score >= 55 ? 'text-amber-700 bg-amber-100' : 'text-red-700 bg-red-100'
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        {/* Score banner */}
+        <div className="bg-white rounded-2xl shadow-md p-6 mb-6 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <h2 className="font-bold text-gray-900">Listening Test Complete</h2>
+            </div>
+            <p className="text-sm text-gray-500">Review the transcripts below to understand what you heard</p>
+          </div>
+          <div className="text-right">
+            <div className={`text-3xl font-extrabold px-4 py-2 rounded-xl ${scoreColor}`}>{result.score}%</div>
+            <p className="text-xs text-gray-400 mt-1">{result.correctCount}/{result.totalCount} correct · {result.level}</p>
+          </div>
+        </div>
+
+        {/* Transcript accordions */}
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-4 h-4 text-blue-600" />
+          <h3 className="font-bold text-gray-800 text-sm">Audio Transcripts — Read & Learn</h3>
+        </div>
+        <div className="space-y-3 mb-6">
+          {listeningParts.map((part, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setOpenPart(openPart === i ? null : i)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 bg-blue-700 text-white rounded-lg flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800 text-sm">{part.title}</p>
+                    <p className="text-xs text-gray-400">{part.questions.length} questions</p>
+                  </div>
+                </div>
+                {openPart === i ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </button>
+              {openPart === i && part.transcript && (
+                <div className="border-t border-gray-100 px-5 py-4">
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3">Full Transcript</p>
+                  <pre className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-sans bg-blue-50 rounded-xl p-4 border border-blue-100">
+                    {part.transcript}
+                  </pre>
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Correct Answers:</p>
+                    {part.questions.map(q => (
+                      <div key={q.id} className="flex items-start gap-2 text-xs">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0 mt-0.5" />
+                        <span className="text-gray-600"><strong>{q.question}</strong> → {q.options[q.correctIndex]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={onContinue}
+          className="w-full flex items-center justify-center gap-2 py-4 bg-blue-700 text-white rounded-2xl font-bold hover:bg-blue-800 transition-colors shadow-lg text-sm"
+        >
+          View Your Full Results <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   )

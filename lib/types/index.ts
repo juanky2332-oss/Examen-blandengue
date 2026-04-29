@@ -72,7 +72,8 @@ export interface ListeningQuestion {
 export interface ListeningPart {
   partNumber: number
   title: string
-  audioDescription: string // mock description
+  audioDescription: string
+  transcript?: string
   questions: ListeningQuestion[]
 }
 

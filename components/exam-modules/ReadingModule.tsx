@@ -188,7 +188,10 @@ function ReadingPart1({ questions, answers, onChange }: {
       {questions.map(q => (
         <div key={q.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <p className="text-sm text-gray-800 mb-3 font-medium leading-relaxed">
-            {q.text.replace('[BLANK]', <span key="blank" className="px-3 py-0.5 border-b-2 border-blue-400 text-blue-400 font-bold">_______</span> as unknown as string)}
+            {(() => {
+              const parts = q.text.split('[BLANK]')
+              return <>{parts[0]}<span className="inline-block px-2 border-b-2 border-blue-400 text-blue-500 font-bold mx-0.5">______</span>{parts[1]}</>
+            })()}
           </p>
           <div className="flex flex-wrap gap-2">
             {q.options.map((opt, i) => (

@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle, XCircle, ArrowLeft, BarChart3,
-  Star, Lightbulb, Target, RefreshCw, ChevronDown, ChevronUp, Brain,
+  Star, Lightbulb, Target, RefreshCw, ChevronDown, ChevronUp, Brain, FileText,
 } from 'lucide-react'
 import type { ExamResult, ExamModule } from '@/lib/types'
+import { listeningParts } from '@/lib/mock-data/listening-questions'
 
 const MODULE_LABELS: Record<ExamModule, string> = {
   core: 'Core — Grammar & Vocabulary',
@@ -78,6 +79,47 @@ function WrongAnswersAccordion({ wrongAnswers }: { wrongAnswers: NonNullable<Exa
                   <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-1.5">{w.explanation}</p>
                 )}
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ListeningTranscripts() {
+  const [open, setOpen] = useState(false)
+  const [openPart, setOpenPart] = useState<number | null>(null)
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-blue-500" />
+          View Audio Transcripts (learn from what you heard)
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+          {listeningParts.map((part, i) => (
+            <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setOpenPart(openPart === i ? null : i)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
+              >
+                <span className="font-semibold text-gray-700">Part {part.partNumber} — {part.title}</span>
+                {openPart === i ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </button>
+              {openPart === i && part.transcript && (
+                <div className="px-4 py-3">
+                  <pre className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap font-sans bg-blue-50 rounded-lg p-3 border border-blue-100">
+                    {part.transcript}
+                  </pre>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -164,8 +206,8 @@ function ResultsContent() {
           <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">{result.overallFeedback}</p>
         </div>
 
-        {/* Part scores (Writing) */}
-        {result.partScores && result.module === 'writing' && (
+        {/* Part scores — all modules */}
+        {result.partScores && (
           <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-4 h-4 text-blue-600" />
@@ -257,6 +299,13 @@ function ResultsContent() {
               <p className="text-xs font-bold uppercase tracking-wide text-blue-200 mb-1">Examiner&apos;s Tip</p>
               <p className="text-sm leading-relaxed">{result.examinerTip}</p>
             </div>
+          </div>
+        )}
+
+        {/* Listening transcripts */}
+        {result.module === 'listening' && (
+          <div className="mb-5">
+            <ListeningTranscripts />
           </div>
         )}
 
